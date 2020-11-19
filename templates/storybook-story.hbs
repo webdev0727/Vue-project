@@ -1,0 +1,58 @@
+/* eslint-disable import/no-extraneous-dependencies */
+import moxios from 'moxios';
+import { object } from '@storybook/addon-knobs';
+import { action } from '@storybook/addon-actions';
+import { storyFactory } from '~storybook/util/helpers';
+import store from '~src/store';
+
+import {{fileName}}Data from '~testData/{{fileName}}.json';
+import {{fileName}} from '~src/{{type}}s/{{fileName}}.vue';
+
+// mock axios
+moxios.install();
+
+moxios.stubRequest('/api/{{name}}', {
+  status: 200,
+  response: {{fileName}}Data,
+});
+
+export default { title: '{{capitalize type}}s/{{fileName}}' };
+
+const template = '<{{fileName}} :{{name}}="{{name}}" @save="save" />';
+
+const story = storyFactory({
+  {{fileName}},
+});
+
+export const asLoading = () => story({
+  template,
+  store,
+  props: {
+    {{name}}: {
+      default: object('{{name}}', undefined),
+    },
+  },
+  methods: { save: action('save') },
+});
+
+export const asDefault = () => story({
+  template,
+  store,
+  props: {
+    {{name}}: {
+      default: object('{{name}}', {}),
+    },
+  },
+  methods: { save: action('save') },
+});
+
+export const withData = () => story({
+  template,
+  store,
+  props: {
+    {{name}}: {
+      default: object('{{name}}', {{fileName}}Data),
+    },
+  },
+  methods: { save: action('save') },
+});

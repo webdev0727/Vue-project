@@ -1,0 +1,116 @@
+trigger:
+  - main
+  - master
+  - develop
+  
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: GitVersion@5
+  inputs:
+    runtime: 'core'
+    configFilePath: 'gitversion.yml'
+
+- task: Bash@3
+  inputs:
+    targetType: 'inline'
+    script: |
+      echo 'Creating duplicate package.json for caching'
+      cp package.json package.json.cache.key
+      echo 'Setting package version to: ' + $GitVersion
+      git config --global user.email "build-server@codehq.co.za"
+      git config --global user.name "build-server"
+      npm version $GitVersion --allow-same-version
+  displayName: 'Set package version'
+  env:
+    GitVersion: $(GitVersion.SemVer)
+
+- task: Cache@2
+  inputs:
+    key: 'package.json.cache.key'
+    path: 'node_modules'
+
+- task: Cache@2
+  inputs:
+    key: cypress | $(Agent.OS) | package.json.cache.key
+    path: /home/vsts/.cache/Cypress
+  displayName: Cache Cypress binary
+
+- task: Npm@1
+  inputs:
+    command: 'ci'
+    verbose: true
+    customEndpoint: 'Code HQ GitHub NPM'
+  
+- script: |
+    npm run lint
+  displayName: 'lint'
+
+- script: |
+    npm run test:e2e:ci
+  displayName: 'e2e test'
+
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: 'test-results/*.xml'
+    mergeTestResults: true
+    failTaskOnFailedTests: false
+    testRunTitle: 'Unit Tests'
+
+- task: PublishCodeCoverageResults@1
+  inputs: 
+    codeCoverageTool: Cobertura # or JaCoCo
+    summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/*coverage.xml'
+    reportDirectory: '$(System.DefaultWorkingDirectory)/coverage'
+
+- script: |
+    npm run build
+  displayName: 'build'
+
+- script: |
+    npm run storybook:build
+  displayName: 'build storybook'
+  condition: |
+    not(eq(variables['Build.Reason'], 'PullRequest'))
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: 'dist'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
+  displayName: 'Publish dist'
+  condition: |
+    and(not(eq(variables['Build.Reason'], 'PullRequest')),
+        eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: 'docs/storybook'
+    ArtifactName: 'storybook'
+    publishLocation: 'Container'
+  displayName: 'Publish storybook'
+  condition: |
+    not(eq(variables['Build.Reason'], 'PullRequest'))
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: 'tests/e2e/videos'
+    ArtifactName: 'Test Videos'
+    publishLocation: 'Container'
+  displayName: 'Publish e2e videos'
+
+# - task: PublishBuildArtifacts@1
+#   inputs:
+#     PathtoPublish: 'tests/e2e/screenshots'
+#     ArtifactName: 'Test Screenshots'
+#     publishLocation: 'Container'
+#   displayName: 'Publish e2e screenshots'
+
+- task: Npm@1
+  inputs:
+    command: 'publish'
+    publishEndpoint: 'Code HQ GitHub NPM'
+  condition: |
+    not(eq(variables['Build.Reason'], 'PullRequest'))

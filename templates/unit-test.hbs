@@ -1,0 +1,29 @@
+/* eslint-disable no-unused-expressions */
+/* eslint-disable no-undef */
+import { createLocalVue, mount } from '@vue/test-utils';
+import { expect } from 'chai';
+// Libraries
+import Vuetify from 'vuetify';
+// Component
+import {{fileName}} from '~src/{{type}}s/{{fileName}}.vue';
+
+describe('{{fileName}}', () => {
+  let vuetify;
+  let component;
+  const localVue = createLocalVue();
+
+  afterEach(() => { component.destroy(); });
+
+  beforeEach(() => {
+    vuetify = new Vuetify();
+    component = mount({{fileName}}, {
+      localVue,
+      vuetify,
+    });
+  });
+
+  it('should render', async () => {
+    // await component.setProps({ content: imageContent });
+    expect(component.exists()).to.be.true;
+  });
+});

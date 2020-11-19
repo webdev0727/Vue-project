@@ -1,0 +1,14 @@
+assembly-versioning-scheme: MajorMinorPatch
+commit-message-incrementing: Enabled
+mode: Mainline
+branches:
+  release:
+    increment: Major
+  master:
+    regex: ^master$|^main$
+    increment: Minor
+  develop:
+    tag: ''
+    increment: Patch
+    regex: develop$
+    is-mainline: true

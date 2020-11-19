@@ -1,0 +1,13 @@
+import axios from 'axios';
+
+export default {
+  load({ commit }) {
+    axios.get('{{endPoint}}').then((response) => {
+      commit('{{name}}', response.data);
+    });
+  },
+  save({ commit }, config) {
+    axios.post('{{endPoint}}', config);
+    commit('{{name}}', config);
+  },
+};
